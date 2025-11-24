@@ -57,3 +57,60 @@ Professional ATS report with:
 
 ## 🏗 Architecture
 
+Flask Backend (API)
+│
+├─ Resume Parser (PDF/DOCX/TXT)
+├─ Skill Extraction (Spacy + SkillNER)
+├─ Embeddings (MPNet)
+├─ FAISS Vector Index
+├─ JD Gap Analyzer
+├─ ATS Scoring Engine (v2)
+└─ PDF Report Generator
+Streamlit Frontend
+
+---
+
+## 💾 Installation
+
+### 1. Create environment
+```bash
+python -m venv venv
+source venv/bin/activate
+
+2. Install dependencies
+pip install -r requirements.txt
+python -m spacy download en_core_web_trf
+
+
+▶️ Running the App
+Start Flask Backend
+python app.py
+
+Start Streamlit UI
+streamlit run streamlit_app.py
+
+
+🐳 Docker Deployment
+docker build -t ats-enterprise .
+docker run -p 5000:5000 ats-enterprise
+
+
+🧪 API Endpoints
+/parse
+Extracts text + entities + skills.
+/enterprise-report
+Generates enterprise-level ATS scoring & PDF report.
+
+🏷 Version
+v2.0.0 (Enterprise Edition)
+
+📜 License
+MIT License.
+
+---
+
+# If you want the README **auto-created in Canvas**, just say:
+👉 **“Add README to canvas”**
+
+If you want all files auto-generated (app.py, streamlit_app.py, Dockerfile, README), say:
+👉 **“Create full project in canvas”**
