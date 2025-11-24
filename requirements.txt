@@ -1,13 +1,22 @@
 flask==3.0.0
 flask-cors==4.0.0
+gunicorn==20.1.0
+
+spacy==3.7.2
+en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.0/en_core_web_trf-3.7.0-py3-none-any.whl
+
+sentence-transformers==2.2.2
+faiss-cpu==1.7.4
+
 pdfplumber
 pymupdf
 docx2txt
-spacy==3.7.2
-en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.0/en_core_web_trf-3.7.0-py3-none-any.whl
-sentence-transformers==2.2.2
-scikit-learn
-nltk
-pdfplumber
 python-docx
-docx2txt
+
+skillNer
+nltk
+
+streamlit
+requests
+reportlab
+python-multipart
