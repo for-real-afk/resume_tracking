@@ -108,9 +108,3 @@ v2.0.0 (Enterprise Edition)
 MIT License.
 
 ---
-
-# If you want the README **auto-created in Canvas**, just say:
-👉 **“Add README to canvas”**
-
-If you want all files auto-generated (app.py, streamlit_app.py, Dockerfile, README), say:
-👉 **“Create full project in canvas”**
