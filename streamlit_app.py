@@ -70,3 +70,26 @@ with col2:
                     st.write("Missing skills (from JD):", out["missing_skills"])
                 else:
                     st.error(r2.text)
+
+
+if st.button("Generate Full ATS Report"):
+    if not resume_file or not jd_text.strip():
+        st.error("Upload resume and paste JD.")
+    else:
+        # First parse resume to extract text
+        files = {"resume": (resume_file.name, resume_file.getvalue())}
+        parse_res = requests.post(f"{API_URL}/parse", files=files).json()
+
+        resume_text = parse_res["raw_text_excerpt"]
+
+        payload = {
+            "resume_text": resume_text,
+            "jd_text": jd_text
+        }
+
+        report = requests.post(f"{API_URL}/full-ats-report", json=payload).json()
+
+        st.subheader("Full ATS Evaluation Report")
+        st.json(report)
+
+        st.metric("Final ATS Score", report["final_ats_score"])

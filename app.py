@@ -144,6 +144,85 @@ def jd_gap_analysis(resume_text, jd_text):
         "coverage_percent": round(coverage,2)
     }
 
+def generate_jd_recommendations(resume_text, jd_text):
+    resume_low = resume_text.lower()
+    jd_low = jd_text.lower()
+
+    # Extract skills from JD using keywords
+    jd_skills = extract_skills_from_text(jd_text)
+    resume_skills = extract_skills_from_text(resume_text)
+
+    missing_skills = list(set(jd_skills) - set(resume_skills))
+
+    recommendations = []
+
+    # Missing technical skills
+    for skill in missing_skills:
+        recommendations.append(
+            f"Consider adding '{skill}' experience as the JD requires it but it is missing in your resume."
+        )
+
+    # Role responsibilities
+    duties = []
+    for line in jd_text.split("\n"):
+        if any(x in line.lower() for x in ["responsible", "design", "develop", "build", "manage"]):
+            duties.append(line.strip())
+
+    for duty in duties:
+        if duty.lower()[:20] not in resume_low:
+            recommendations.append(
+                f"The JD mentions: '{duty}'. Add a relevant bullet point in your experience section."
+            )
+
+    # Action verbs check
+    action_verbs = ["developed", "built", "designed", "optimized", "automated", "implemented"]
+    missing_verbs = [v for v in action_verbs if v not in resume_low]
+
+    if len(missing_verbs) > 3:
+        recommendations.append(
+            "Add more strong action verbs such as: " + ", ".join(missing_verbs[:4])
+        )
+
+    return recommendations
+
+def ats_friendly_recommendations(resume_text):
+    suggestions = []
+
+    # Basic structure checks
+    if "experience" not in resume_text.lower():
+        suggestions.append("Add an EXPERIENCE section — ATS systems expect it.")
+
+    if "skills" not in resume_text.lower():
+        suggestions.append("Add a SKILLS section containing your core technical skills.")
+
+    if len(resume_text.split()) < 250:
+        suggestions.append("Resume is short — ATS may score it low. Add more detailed bullet points.")
+
+    # Bullet formatting
+    if "•" not in resume_text and "-" not in resume_text:
+        suggestions.append("Use bullet points — ATS systems parse bullets better than paragraphs.")
+
+    # Contact info check
+    if "@" not in resume_text:
+        suggestions.append("Include a professional email — ATS requires contact details.")
+
+    # PDF formatting issues
+    if "endstream" in resume_text:
+        suggestions.append("Your PDF has formatting issues. Re-export as a clean PDF or use a template.")
+
+    return suggestions
+
+
+def calculate_ats_score(embed_score_pct, coverage_pct, structural_issues_count):
+    structure_score = max(0, 100 - structural_issues_count * 10)
+    final_score = (
+        embed_score_pct * 0.40 +
+        coverage_pct * 0.40 +
+        structure_score * 0.20
+    )
+    return round(final_score, 2)
+
+
 # ---------- Routes ----------
 @app.route("/parse", methods=["POST"])
 def parse_route():
@@ -159,6 +238,44 @@ def parse_route():
         "skills_extracted": skills,
         "raw_text_excerpt": text[:2000]
     })
+
+@app.route("/full-ats-report", methods=["POST"])
+def full_ats_report():
+    data = request.get_json(force=True)
+    resume_text = data.get("resume_text","")
+    jd_text = data.get("jd_text","")
+
+    # Embedding score
+    emb_score, method = compute_similarity_emb(resume_text, jd_text)
+    emb_pct = round(emb_score * 100, 2)
+
+    # Gap analysis
+    gap = jd_gap_analysis(resume_text, jd_text)
+
+    # JD-based improvement
+    jd_rec = generate_jd_recommendations(resume_text, jd_text)
+
+    # Structural ATS suggestions
+    ats_rec = ats_friendly_recommendations(resume_text)
+
+    # ATS Score
+    ats_score = calculate_ats_score(
+        embed_score_pct=emb_pct,
+        coverage_pct=gap["coverage_percent"],
+        structural_issues_count=len(ats_rec)
+    )
+
+    return jsonify({
+        "embedding_score_pct": emb_pct,
+        "jd_coverage_pct": gap["coverage_percent"],
+        "method": method,
+        "missing_skills": gap["missing_skills"],
+        "common_skills": gap["common_skills"],
+        "jd_recommendations": jd_rec,
+        "ats_friendly_suggestions": ats_rec,
+        "final_ats_score": ats_score
+    })
+
 
 @app.route("/embed-score", methods=["POST"])
 def embed_score_route():
