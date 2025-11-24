@@ -1,0 +1,8 @@
+Flask==3.0.0
+flask-cors==4.0.0
+spacy==3.7.2
+numpy>=1.22.0
+click==8.1.7
+pdfplumber
+python-docx
+docx2txt
