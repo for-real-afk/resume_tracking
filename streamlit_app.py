@@ -1,77 +1,72 @@
+# streamlit_app.py
 import streamlit as st
 import requests
-import base64
+import io
 
-API_URL = "http://127.0.0.1:5000"   # your Flask backend
+API_URL = "http://127.0.0.1:5000"
 
-st.set_page_config(page_title="ATS Resume Analyzer", layout="wide")
+st.set_page_config(page_title="ATS Resume Analyzer + Embeddings", layout="wide")
+st.title("ATS Resume Analyzer — Embeddings & JD Gap Analysis")
 
-st.title("📄⚡ ATS Resume Analyzer with JD Matching")
-st.write("Upload your resume and compare it with a job description.")
+col1, col2 = st.columns([2,1])
 
-# --- File uploader ---
-resume_file = st.file_uploader("Upload Resume (PDF, TXT, DOCX)", type=["pdf", "txt", "docx"])
+with col1:
+    resume_file = st.file_uploader("Upload resume (pdf, docx, txt)", type=["pdf","docx","txt"])
+    jd_text = st.text_area("Paste job description (JD) here", height=250)
+    st.info("You can also test quickly with the uploaded resume file path: `/mnt/data/Deepanshu-Sonwane-FlowCV-Resume-20251013 (3).pdf`")
 
-# --- Job Description ---
-jd_text = st.text_area("Paste Job Description Here", height=200)
-
-col1, col2 = st.columns(2)
-
-# ---------------------- PARSE RESUME ----------------------
-if col1.button("📘 Parse Resume"):
-    if not resume_file:
-        st.error("Please upload a resume file.")
-    else:
-        files = {"resume": (resume_file.name, resume_file.getvalue(), resume_file.type)}
-        response = requests.post(f"{API_URL}/parse", files=files)
-        
-        if response.status_code == 200:
-            data = response.json()
-            st.subheader("🔍 Extracted Resume Details")
-            st.json(data["parsed_resume"])
+with col2:
+    if st.button("Parse resume"):
+        if not resume_file:
+            st.error("Upload a resume first.")
         else:
-            st.error("Error parsing the resume. Backend not responding.")
+            files = {"resume": (resume_file.name, resume_file.getvalue())}
+            r = requests.post(f"{API_URL}/parse", files=files)
+            if r.ok:
+                data = r.json()
+                st.subheader("Parsed Resume")
+                st.json(data)
+            else:
+                st.error(r.text)
 
-# ---------------------- ATS SCORE ----------------------
-if col2.button("📊 Calculate ATS Score"):
-    if not resume_file or not jd_text.strip():
-        st.error("Please upload a resume and paste JD.")
-    else:
-        # Convert file → text for ATS
-        resume_bytes = resume_file.getvalue()
-        resume_text = resume_bytes.decode("utf-8", errors="ignore")
-
-        payload = {
-            "resume_text": resume_text,
-            "jd_text": jd_text
-        }
-
-        response = requests.post(f"{API_URL}/ats-score", json=payload)
-
-        if response.status_code == 200:
-            score = response.json()["ats_score"]
-            st.subheader("🎯 ATS Score")
-            st.metric("Matching Score", f"{score}%")
+    if st.button("Compute embedding similarity (resume ↔ JD)"):
+        if not resume_file or not jd_text.strip():
+            st.error("Upload resume and paste JD.")
         else:
-            st.error("Error calculating ATS score.")
+            # convert file -> text locally before calling /embed-score
+            # but the backend expects resume_text, so extract text here or call parse endpoint
+            files = {"resume": (resume_file.name, resume_file.getvalue())}
+            r = requests.post(f"{API_URL}/parse", files=files)
+            if not r.ok:
+                st.error("Could not parse resume.")
+            else:
+                resume_text = r.json().get("raw_text_excerpt","")
+                payload = {"resume_text": resume_text, "jd_text": jd_text}
+                r2 = requests.post(f"{API_URL}/embed-score", json=payload)
+                if r2.ok:
+                    out = r2.json()
+                    st.metric("Matching Score (%)", f"{out['similarity_pct']}%")
+                    st.write("Method used:", out["method"])
+                else:
+                    st.error(r2.text)
 
-# ---------------------- IMPROVEMENTS ----------------------
-if st.button("💡 Get Improvement Suggestions"):
-    if not resume_file or not jd_text.strip():
-        st.error("Please upload a resume and paste JD.")
-    else:
-        resume_bytes = resume_file.getvalue()
-        resume_text = resume_bytes.decode("utf-8", errors="ignore")
-
-        response = requests.post(f"{API_URL}/improvements", json={
-            "resume_text": resume_text,
-            "jd_text": jd_text
-        })
-
-        if response.status_code == 200:
-            suggestions = response.json()["tips"]
-            st.subheader("💡 Recommended Improvements")
-            for tip in suggestions:
-                st.write(f"👉 {tip}")
+    if st.button("JD Gap Analysis (skills coverage)"):
+        if not resume_file or not jd_text.strip():
+            st.error("Upload resume and paste JD.")
         else:
-            st.error("Backend error while generating improvements.")
+            files = {"resume": (resume_file.name, resume_file.getvalue())}
+            r = requests.post(f"{API_URL}/parse", files=files)
+            if not r.ok:
+                st.error("Could not parse resume.")
+            else:
+                resume_text = r.json().get("raw_text_excerpt","")
+                payload = {"resume_text": resume_text, "jd_text": jd_text}
+                r2 = requests.post(f"{API_URL}/gap-analysis", json=payload)
+                if r2.ok:
+                    out = r2.json()
+                    st.subheader("JD Gap Analysis")
+                    st.write(f"Coverage: {out['coverage_percent']}%")
+                    st.write("Common skills:", out["common_skills"])
+                    st.write("Missing skills (from JD):", out["missing_skills"])
+                else:
+                    st.error(r2.text)

@@ -1,8 +1,13 @@
-Flask==3.0.0
+flask==3.0.0
 flask-cors==4.0.0
+pdfplumber
+pymupdf
+docx2txt
 spacy==3.7.2
-numpy>=1.22.0
-click==8.1.7
+en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.7.0/en_core_web_trf-3.7.0-py3-none-any.whl
+sentence-transformers==2.2.2
+scikit-learn
+nltk
 pdfplumber
 python-docx
 docx2txt
