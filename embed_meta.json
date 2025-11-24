@@ -1,0 +1,16 @@
+{
+  "sentences": [
+    "deepanshusonwane1@gmail.com",
+    "github.com/for-real-afk",
+    "www.linkedin.com/in/ds-99",
+    "Full Stack Machine Learning Developer passionate about building AI-driven web systems that scale.",
+    "Experienced in Django, React, and PostgreSQL with proven results in model deployment, API\nintegration, and cloud-based automation. Currently pursuing M.Tech\n in Computer Science at DAVV,\nIndore, developing intelligent full-stack systems for real-world impact.",
+    "SKILLS\nLanguages: Python, JavaScript, SQL, C++, Frameworks: Django, Flask, FastAPI, React,",
+    "Machine \nLearning: TensorFlow, PyTorch, Scikit-learn, CNN, BERT, XGBoost, LSTM, DevOps & Cloud: Docker, \nAWS (EC2, S3), CI/CD, Linux, Frameworks: Django, Flask, FastAPI, React.js, Redux, Databases: \nPostgreSQL, MySQL, Tools: Git, Postman, MLflow, VS Code, Concepts: MLOps, REST APIs, ETL \nPipelines, Model Deployment\nPROFESSIONAL EXPERIENCE\nPython Developer Intern – IISER Indore  July 2024 – February 2025",
+    "•Built an e-commerce platform using Django, React, and PostgreSQL handling 500+ products.\n•Designed 15+ REST APIs for authentication, order management, and secure payments.\n•Optimized database queries and caching, reducing page load time from 3.2 s → 0.8 s (75% faster).\n•Integrated real-time order tracking and payment notifications, cutting processing time by 40%.\nPROJECTS\nMedical Image Classification System, PyTorch, ResNet50, Flask, React, Docker, AWS\n•Developed a CNN model to classify chest X-rays into five disease categories with 94% accuracy on 15 \nK + images.\n•Used transfer learning (ResNet-50) and Grad-CAM for explainable AI.\n•Deployed a Dockerized API on AWS EC2; frontend built in React.\n•Reduced preliminary diagnosis time from 30 min → 15 s during beta testing.\nProduct Recommendation Engine, Scikit-learn, Django, PostgreSQL, React\n•Built a hybrid recommendation system combining collaborative filtering and content-based \nmethods.\n•Integrated seamlessly into existing Django backend with < 200 ms response time.\n•Improved cross-selling by 34% and average order value by 28% in testing.",
+    "INTELLIGENT SEED E-COMMERCE PLATFORM — Full Stack (Ongoing), XGBoost, LSTM, Flask, AWS",
+    "•Trained models predicting soybean yield with 87% accuracy using weather & soil data.\n•Built Flask API with SHAP explainability for interpretable outputs.",
+    "•Automated monthly retraining pipeline deployed on AWS EC2.",
+    "EDUCATION\nM.Tech – Computer Science & Engineering, DAVV, Indore  (2023 – 2025)  |  CGPA 6.67/10\nB.Tech – Computer Science & Engineering, \nOriental College of Technology, Bhopal  (2018 – 2022)  |  CGPA 7.46/10\nACHIEVEMENTS\n•Selected for Smart India Hackathon 2019 Nodal level\n•Presented IoT solutions at Smart India Hackathon, Bhopal\nCERTIFICATES\nDeep Learning Specialization – DeepLearning.AI\nMachine Learning Specialization – Stanford University"
+  ]
+}

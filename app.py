@@ -1,4 +1,6 @@
-# app.py (enterprise-level)
+# app.py (enterprise-level) — PATCHED
+# This file has been patched to fix cross-platform PDF generation issues,
+# add a running-file print for debugging, and ensure safe temp dir creation.
 import os
 import io
 import re
@@ -9,7 +11,11 @@ from flask_cors import CORS
 import fitz  # PyMuPDF
 import docx2txt
 import numpy as np
-import faiss
+# faiss optional import (may fail on some Windows setups)
+try:
+    import faiss
+except Exception:
+    faiss = None
 import pdfplumber
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -34,6 +40,9 @@ EMBED_META_PATH = "embed_meta.json"
 
 app = Flask(__name__)
 CORS(app)
+
+# Debug: print which file is being executed
+print("\n\nRUNNING APP FROM:", __file__, "\n\n")
 
 nlp = spacy.load("en_core_web_trf")  # transformer-based NER
 sbert = SentenceTransformer(SBERT_MODEL)
@@ -139,19 +148,26 @@ def build_faiss_index(text, force_rebuild=False):
         return None
     embeddings = sbert.encode(sents, convert_to_numpy=True, show_progress_bar=False)
     dim = embeddings.shape[1]
+    if faiss is None:
+        return {"index": None, "sentences": sents}
     index = faiss.IndexFlatIP(dim)
     # normalize for cosine
     faiss.normalize_L2(embeddings)
     index.add(embeddings)
     # save meta (sentences)
     meta = {"sentences": sents}
-    faiss.write_index(index, EMBED_DB_PATH)
+    try:
+        faiss.write_index(index, EMBED_DB_PATH)
+    except Exception:
+        pass
     with open(EMBED_META_PATH, "w", encoding="utf8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     return {"index": index, "sentences": sents}
 
 def load_faiss_index():
     if not os.path.exists(EMBED_DB_PATH) or not os.path.exists(EMBED_META_PATH):
+        return None
+    if faiss is None:
         return None
     index = faiss.read_index(EMBED_DB_PATH)
     with open(EMBED_META_PATH, "r", encoding="utf8") as f:
@@ -222,6 +238,10 @@ def compute_ats_score_v2(emb_pct, coverage_pct, structure_penalties, semantic_al
 
 # ------- PDF report generation -------
 def generate_pdf_report(report_json, out_path):
+    # ensure parent dir exists
+    parent = os.path.dirname(out_path)
+    if parent and not os.path.exists(parent):
+        os.makedirs(parent, exist_ok=True)
     c = canvas.Canvas(out_path)
     c.setFont("Helvetica", 12)
     y = 800
@@ -243,8 +263,14 @@ def generate_pdf_report(report_json, out_path):
     c.drawString(40, y, "Top tailoring suggestions:")
     y -= 20
     for r in report_json.get("jd_recommendations", [])[:10]:
-        c.drawString(60, y, f"- {r[:110]}")
+        # wrap long lines safely
+        line = r[:110]
+        c.drawString(60, y, f"- {line}")
         y -= 15
+        if y < 60:
+            c.showPage()
+            c.setFont("Helvetica", 12)
+            y = 800
     c.save()
 
 # ------- Routes -------
@@ -279,13 +305,16 @@ def enterprise_report():
         build_faiss_index(resume_text)
         idx_data = load_faiss_index()
         # run a semantic search: top-k sentences matching JD
-        jd_emb = sbert.encode([jd_text], convert_to_numpy=True)
-        faiss.normalize_L2(jd_emb)
-        D, I = idx_data["index"].search(jd_emb, 5)
-        # compute semantic alignment percent as how many top sentences include JD skills
-        top_sents = [idx_data["sentences"][int(i)] for i in I[0] if int(i) < len(idx_data["sentences"])]
-        matched_count = sum(1 for s in top_sents if any(k in s.lower() for k in gap["common_skills"]))
-        semantic_alignment_pct = round((matched_count/len(top_sents))*100,2) if top_sents else 0.0
+        if idx_data and idx_data.get("index") is not None:
+            jd_emb = sbert.encode([jd_text], convert_to_numpy=True)
+            faiss.normalize_L2(jd_emb)
+            D, I = idx_data["index"].search(jd_emb, 5)
+            # compute semantic alignment percent as how many top sentences include JD skills
+            top_sents = [idx_data["sentences"][int(i)] for i in I[0] if int(i) < len(idx_data["sentences"])]
+            matched_count = sum(1 for s in top_sents if any(k in s.lower() for k in gap["common_skills"]))
+            semantic_alignment_pct = round((matched_count/len(top_sents))*100,2) if top_sents else 0.0
+        else:
+            semantic_alignment_pct = 0.0
     except Exception:
         semantic_alignment_pct = 0.0
 
@@ -321,8 +350,20 @@ def enterprise_report():
         "method": "all-mpnet-base-v2"
     }
 
-    # optional: produce PDF and return path
-    out_pdf = f"/tmp/ats_report_{int(datetime.utcnow().timestamp())}.pdf"
+    # use project-local tmp_reports folder for maximum cross-platform safety
+    tmp_dir = os.path.join(os.getcwd(), "tmp_reports")
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    filename = f"ats_report_{int(datetime.utcnow().timestamp())}.pdf"
+    out_pdf = os.path.join(tmp_dir, filename)
+
+    # ensure file can be created (Windows safe)
+    try:
+        with open(out_pdf, "wb") as f:
+            pass
+    except Exception as e:
+        return jsonify({"error": f"Cannot create PDF file: {e}", "path": out_pdf}), 500
+
     generate_pdf_report(report, out_pdf)
     report["pdf_report_path"] = out_pdf
 
